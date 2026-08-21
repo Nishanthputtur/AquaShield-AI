@@ -2,6 +2,7 @@
 Asset definitions for the AquaShield AI water distribution simulation.
 
 Contains the frozen set of 108 assets:
+
 - 8 Treatment Facilities
 - 8 Reservoirs
 - 12 Pump Stations
@@ -81,8 +82,9 @@ class Asset:
 # ---------------------------------------------------------------------------
 # FROZEN ASSET CONFIGURATION
 # ---------------------------------------------------------------------------
-#
+
 # Each entry:
+#
 # (
 #     asset_id,
 #     asset_type,
@@ -91,7 +93,6 @@ class Asset:
 # )
 #
 # Total = 108 assets
-# ---------------------------------------------------------------------------
 
 ASSET_CONFIG = [
 
@@ -112,7 +113,6 @@ ASSET_CONFIG = [
     ("TF-007", AssetType.TREATMENT_FACILITY, "RAJATPUR", "Z-13"),
     ("TF-008", AssetType.TREATMENT_FACILITY, "RAJATPUR", "Z-15"),
 
-
     # ============================================================
     # RESERVOIRS
     # 8 total, 2 per city
@@ -129,7 +129,6 @@ ASSET_CONFIG = [
 
     ("R-007", AssetType.RESERVOIR, "RAJATPUR", "Z-13"),
     ("R-008", AssetType.RESERVOIR, "RAJATPUR", "Z-15"),
-
 
     # ============================================================
     # PUMP STATIONS
@@ -151,7 +150,6 @@ ASSET_CONFIG = [
     ("PS-010", AssetType.PUMP_STATION, "RAJATPUR", "Z-13"),
     ("PS-011", AssetType.PUMP_STATION, "RAJATPUR", "Z-14"),
     ("PS-012", AssetType.PUMP_STATION, "RAJATPUR", "Z-15"),
-
 
     # ============================================================
     # PIPELINES
@@ -220,12 +218,11 @@ ASSET_CONFIG = [
 
     ("PL-043", AssetType.PIPELINE, "RAJATPUR", "Z-15"),
     ("PL-044", AssetType.PIPELINE, "RAJATPUR", "Z-15"),
-    ("PL-045", AssetType.PIPELINE, "RAJATPUR", "Z-15"),
+    ("PL-045", AssetType.PIPELINE, "ZORAWARPUR", "Z-15"),
 
     ("PL-046", AssetType.PIPELINE, "RAJATPUR", "Z-16"),
     ("PL-047", AssetType.PIPELINE, "RAJATPUR", "Z-16"),
     ("PL-048", AssetType.PIPELINE, "RAJATPUR", "Z-16"),
-
 
     # ============================================================
     # VALVES
@@ -305,6 +302,7 @@ def create_assets() -> Dict[str, Asset]:
 
 
 # Global asset registry
+
 ASSETS = create_assets()
 
 
