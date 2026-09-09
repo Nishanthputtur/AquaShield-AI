@@ -1,21 +1,15 @@
 """
-Asset definitions for the AquaShield AI water distribution simulation.
-
-Contains the frozen set of 108 assets:
-
-- 8 Treatment Facilities
-- 8 Reservoirs
-- 12 Pump Stations
-- 48 Pipelines
-- 32 Valves
+Defines water infrastructure asset types and the Asset dataclass
+for the AquaShield AI virtual water city.
 """
 
+from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List
+from typing import List
 
 
-class AssetType(str, Enum):
-    """Types of infrastructure assets."""
+class AssetType(Enum):
+    """Types of water infrastructure assets."""
 
     TREATMENT_FACILITY = "Treatment Facility"
     RESERVOIR = "Reservoir"
@@ -24,342 +18,130 @@ class AssetType(str, Enum):
     VALVE = "Valve"
 
 
-class AssetStatus(str, Enum):
-    """Operational status of an asset."""
-
-    OPERATIONAL = "Operational"
-    WARNING = "Warning"
-    MAINTENANCE_REQUIRED = "Maintenance Required"
-    FAILED = "Failed"
-    OFFLINE = "Offline"
-
-
-class AssetCondition(str, Enum):
-    """Physical condition of an asset."""
-
-    EXCELLENT = "Excellent"
-    GOOD = "Good"
-    MODERATE = "Moderate"
-    POOR = "Poor"
-    CRITICAL = "Critical"
-
-
+@dataclass
 class Asset:
-    """Represents one infrastructure asset."""
+    """
+    Represents a single water infrastructure asset.
 
-    def __init__(
-        self,
-        asset_id: str,
-        asset_type: str,
-        city_id: str,
-        zone_id: str,
-        status: str = AssetStatus.OPERATIONAL,
-        condition: str = AssetCondition.GOOD
-    ):
-        self.asset_id = asset_id
-        self.asset_type = asset_type
-        self.city_id = city_id
-        self.zone_id = zone_id
-        self.status = status
-        self.condition = condition
+    Each asset belongs to one city and one zone.
+    """
 
-        # Sensors will be attached during sensor initialization.
-        self.sensors = []
+    id: str
+    name: str
+    asset_type: AssetType
+    city_id: str
+    zone_id: str
 
-        # Additional asset information.
-        self.metadata = {}
+    def __post_init__(self) -> None:
+        """Validate the basic identity information of the asset."""
 
-    def __repr__(self) -> str:
-        return (
-            f"Asset("
-            f"{self.asset_id}, "
-            f"{self.asset_type}, "
-            f"{self.zone_id}"
-            f")"
-        )
+        if not self.id.strip():
+            raise ValueError("Asset ID cannot be empty.")
+
+        if not self.name.strip():
+            raise ValueError("Asset name cannot be empty.")
+
+        if not self.city_id.strip():
+            raise ValueError("City ID cannot be empty.")
+
+        if not self.zone_id.strip():
+            raise ValueError("Zone ID cannot be empty.")
 
 
-# ---------------------------------------------------------------------------
-# FROZEN ASSET CONFIGURATION
-# ---------------------------------------------------------------------------
+def create_assets_for_city(
+    city_id: str,
+    zone_ids: List[str],
+    *,
+    treatment_facilities: int = 2,
+    reservoirs: int = 2,
+    pump_stations: int = 3,
+    pipelines: int = 12,
+    valves: int = 8,
+) -> List[Asset]:
+    """
+    Create the deterministic infrastructure assets for one city.
 
-# Each entry:
-#
-# (
-#     asset_id,
-#     asset_type,
-#     city_id,
-#     zone_id
-# )
-#
-# Total = 108 assets
+    Each city contains:
+        - 2 Treatment Facilities
+        - 2 Reservoirs
+        - 3 Pump Stations
+        - 12 Pipelines
+        - 8 Valves
 
-ASSET_CONFIG = [
+    Total assets per city = 27.
 
-    # ============================================================
-    # TREATMENT FACILITIES
-    # 8 total, 2 per city
-    # ============================================================
+    Assets are distributed among the city's four zones
+    using round-robin distribution.
+    """
 
-    ("TF-001", AssetType.TREATMENT_FACILITY, "ZORAWARPUR", "Z-01"),
-    ("TF-002", AssetType.TREATMENT_FACILITY, "ZORAWARPUR", "Z-03"),
+    if not city_id.strip():
+        raise ValueError("City ID cannot be empty.")
 
-    ("TF-003", AssetType.TREATMENT_FACILITY, "AMARANAGAR", "Z-05"),
-    ("TF-004", AssetType.TREATMENT_FACILITY, "AMARANAGAR", "Z-07"),
+    if len(zone_ids) != 4:
+        raise ValueError("Each city must have exactly 4 zones.")
 
-    ("TF-005", AssetType.TREATMENT_FACILITY, "RAJATGIRI", "Z-09"),
-    ("TF-006", AssetType.TREATMENT_FACILITY, "RAJATGIRI", "Z-11"),
+    if len(set(zone_ids)) != len(zone_ids):
+        raise ValueError("Zone IDs must be unique.")
 
-    ("TF-007", AssetType.TREATMENT_FACILITY, "RAJATPUR", "Z-13"),
-    ("TF-008", AssetType.TREATMENT_FACILITY, "RAJATPUR", "Z-15"),
+    if any(not zone_id.strip() for zone_id in zone_ids):
+        raise ValueError("Zone IDs cannot be empty.")
 
-    # ============================================================
-    # RESERVOIRS
-    # 8 total, 2 per city
-    # ============================================================
+    type_counts = [
+        (
+            AssetType.TREATMENT_FACILITY,
+            treatment_facilities,
+            "TF",
+        ),
+        (
+            AssetType.RESERVOIR,
+            reservoirs,
+            "R",
+        ),
+        (
+            AssetType.PUMP_STATION,
+            pump_stations,
+            "PS",
+        ),
+        (
+            AssetType.PIPELINE,
+            pipelines,
+            "P",
+        ),
+        (
+            AssetType.VALVE,
+            valves,
+            "V",
+        ),
+    ]
 
-    ("R-001", AssetType.RESERVOIR, "ZORAWARPUR", "Z-01"),
-    ("R-002", AssetType.RESERVOIR, "ZORAWARPUR", "Z-03"),
+    assets: List[Asset] = []
 
-    ("R-003", AssetType.RESERVOIR, "AMARANAGAR", "Z-05"),
-    ("R-004", AssetType.RESERVOIR, "AMARANAGAR", "Z-07"),
+    for asset_type, count, prefix in type_counts:
 
-    ("R-005", AssetType.RESERVOIR, "RAJATGIRI", "Z-09"),
-    ("R-006", AssetType.RESERVOIR, "RAJATGIRI", "Z-11"),
+        if count < 0:
+            raise ValueError(
+                f"Asset count cannot be negative: {asset_type.value}"
+            )
 
-    ("R-007", AssetType.RESERVOIR, "RAJATPUR", "Z-13"),
-    ("R-008", AssetType.RESERVOIR, "RAJATPUR", "Z-15"),
+        for index in range(1, count + 1):
 
-    # ============================================================
-    # PUMP STATIONS
-    # 12 total, 3 per city
-    # ============================================================
+            # Distribute assets across the four zones.
+            zone_index = (index - 1) % len(zone_ids)
+            zone_id = zone_ids[zone_index]
 
-    ("PS-001", AssetType.PUMP_STATION, "ZORAWARPUR", "Z-01"),
-    ("PS-002", AssetType.PUMP_STATION, "ZORAWARPUR", "Z-02"),
-    ("PS-003", AssetType.PUMP_STATION, "ZORAWARPUR", "Z-03"),
+            # City-specific deterministic ID.
+            asset_id = f"{city_id}-{prefix}-{index:03d}"
 
-    ("PS-004", AssetType.PUMP_STATION, "AMARANAGAR", "Z-05"),
-    ("PS-005", AssetType.PUMP_STATION, "AMARANAGAR", "Z-06"),
-    ("PS-006", AssetType.PUMP_STATION, "AMARANAGAR", "Z-07"),
+            asset_name = f"{asset_type.value} {asset_id}"
 
-    ("PS-007", AssetType.PUMP_STATION, "RAJATGIRI", "Z-09"),
-    ("PS-008", AssetType.PUMP_STATION, "RAJATGIRI", "Z-10"),
-    ("PS-009", AssetType.PUMP_STATION, "RAJATGIRI", "Z-11"),
+            asset = Asset(
+                id=asset_id,
+                name=asset_name,
+                asset_type=asset_type,
+                city_id=city_id,
+                zone_id=zone_id,
+            )
 
-    ("PS-010", AssetType.PUMP_STATION, "RAJATPUR", "Z-13"),
-    ("PS-011", AssetType.PUMP_STATION, "RAJATPUR", "Z-14"),
-    ("PS-012", AssetType.PUMP_STATION, "RAJATPUR", "Z-15"),
-
-    # ============================================================
-    # PIPELINES
-    # 48 total, 3 per zone
-    # ============================================================
-
-    # Zorawarpur
-    ("PL-001", AssetType.PIPELINE, "ZORAWARPUR", "Z-01"),
-    ("PL-002", AssetType.PIPELINE, "ZORAWARPUR", "Z-01"),
-    ("PL-003", AssetType.PIPELINE, "ZORAWARPUR", "Z-01"),
-
-    ("PL-004", AssetType.PIPELINE, "ZORAWARPUR", "Z-02"),
-    ("PL-005", AssetType.PIPELINE, "ZORAWARPUR", "Z-02"),
-    ("PL-006", AssetType.PIPELINE, "ZORAWARPUR", "Z-02"),
-
-    ("PL-007", AssetType.PIPELINE, "ZORAWARPUR", "Z-03"),
-    ("PL-008", AssetType.PIPELINE, "ZORAWARPUR", "Z-03"),
-    ("PL-009", AssetType.PIPELINE, "ZORAWARPUR", "Z-03"),
-
-    ("PL-010", AssetType.PIPELINE, "ZORAWARPUR", "Z-04"),
-    ("PL-011", AssetType.PIPELINE, "ZORAWARPUR", "Z-04"),
-    ("PL-012", AssetType.PIPELINE, "ZORAWARPUR", "Z-04"),
-
-    # Amaranagar
-    ("PL-013", AssetType.PIPELINE, "AMARANAGAR", "Z-05"),
-    ("PL-014", AssetType.PIPELINE, "AMARANAGAR", "Z-05"),
-    ("PL-015", AssetType.PIPELINE, "AMARANAGAR", "Z-05"),
-
-    ("PL-016", AssetType.PIPELINE, "AMARANAGAR", "Z-06"),
-    ("PL-017", AssetType.PIPELINE, "AMARANAGAR", "Z-06"),
-    ("PL-018", AssetType.PIPELINE, "AMARANAGAR", "Z-06"),
-
-    ("PL-019", AssetType.PIPELINE, "AMARANAGAR", "Z-07"),
-    ("PL-020", AssetType.PIPELINE, "AMARANAGAR", "Z-07"),
-    ("PL-021", AssetType.PIPELINE, "AMARANAGAR", "Z-07"),
-
-    ("PL-022", AssetType.PIPELINE, "AMARANAGAR", "Z-08"),
-    ("PL-023", AssetType.PIPELINE, "AMARANAGAR", "Z-08"),
-    ("PL-024", AssetType.PIPELINE, "AMARANAGAR", "Z-08"),
-
-    # Rajatgiri
-    ("PL-025", AssetType.PIPELINE, "RAJATGIRI", "Z-09"),
-    ("PL-026", AssetType.PIPELINE, "RAJATGIRI", "Z-09"),
-    ("PL-027", AssetType.PIPELINE, "RAJATGIRI", "Z-09"),
-
-    ("PL-028", AssetType.PIPELINE, "RAJATGIRI", "Z-10"),
-    ("PL-029", AssetType.PIPELINE, "RAJATGIRI", "Z-10"),
-    ("PL-030", AssetType.PIPELINE, "RAJATGIRI", "Z-10"),
-
-    ("PL-031", AssetType.PIPELINE, "RAJATGIRI", "Z-11"),
-    ("PL-032", AssetType.PIPELINE, "RAJATGIRI", "Z-11"),
-    ("PL-033", AssetType.PIPELINE, "RAJATGIRI", "Z-11"),
-
-    ("PL-034", AssetType.PIPELINE, "RAJATGIRI", "Z-12"),
-    ("PL-035", AssetType.PIPELINE, "RAJATGIRI", "Z-12"),
-    ("PL-036", AssetType.PIPELINE, "RAJATGIRI", "Z-12"),
-
-    # Rajatpur
-    ("PL-037", AssetType.PIPELINE, "RAJATPUR", "Z-13"),
-    ("PL-038", AssetType.PIPELINE, "RAJATPUR", "Z-13"),
-    ("PL-039", AssetType.PIPELINE, "RAJATPUR", "Z-13"),
-
-    ("PL-040", AssetType.PIPELINE, "RAJATPUR", "Z-14"),
-    ("PL-041", AssetType.PIPELINE, "RAJATPUR", "Z-14"),
-    ("PL-042", AssetType.PIPELINE, "RAJATPUR", "Z-14"),
-
-    ("PL-043", AssetType.PIPELINE, "RAJATPUR", "Z-15"),
-    ("PL-044", AssetType.PIPELINE, "RAJATPUR", "Z-15"),
-    ("PL-045", AssetType.PIPELINE, "ZORAWARPUR", "Z-15"),
-
-    ("PL-046", AssetType.PIPELINE, "RAJATPUR", "Z-16"),
-    ("PL-047", AssetType.PIPELINE, "RAJATPUR", "Z-16"),
-    ("PL-048", AssetType.PIPELINE, "RAJATPUR", "Z-16"),
-
-    # ============================================================
-    # VALVES
-    # 32 total, 2 per zone
-    # ============================================================
-
-    # Zorawarpur
-    ("V-001", AssetType.VALVE, "ZORAWARPUR", "Z-01"),
-    ("V-002", AssetType.VALVE, "ZORAWARPUR", "Z-01"),
-
-    ("V-003", AssetType.VALVE, "ZORAWARPUR", "Z-02"),
-    ("V-004", AssetType.VALVE, "ZORAWARPUR", "Z-02"),
-
-    ("V-005", AssetType.VALVE, "ZORAWARPUR", "Z-03"),
-    ("V-006", AssetType.VALVE, "ZORAWARPUR", "Z-03"),
-
-    ("V-007", AssetType.VALVE, "ZORAWARPUR", "Z-04"),
-    ("V-008", AssetType.VALVE, "ZORAWARPUR", "Z-04"),
-
-    # Amaranagar
-    ("V-009", AssetType.VALVE, "AMARANAGAR", "Z-05"),
-    ("V-010", AssetType.VALVE, "AMARANAGAR", "Z-05"),
-
-    ("V-011", AssetType.VALVE, "AMARANAGAR", "Z-06"),
-    ("V-012", AssetType.VALVE, "AMARANAGAR", "Z-06"),
-
-    ("V-013", AssetType.VALVE, "AMARANAGAR", "Z-07"),
-    ("V-014", AssetType.VALVE, "AMARANAGAR", "Z-07"),
-
-    ("V-015", AssetType.VALVE, "AMARANAGAR", "Z-08"),
-    ("V-016", AssetType.VALVE, "AMARANAGAR", "Z-08"),
-
-    # Rajatgiri
-    ("V-017", AssetType.VALVE, "RAJATGIRI", "Z-09"),
-    ("V-018", AssetType.VALVE, "RAJATGIRI", "Z-09"),
-
-    ("V-019", AssetType.VALVE, "RAJATGIRI", "Z-10"),
-    ("V-020", AssetType.VALVE, "RAJATGIRI", "Z-10"),
-
-    ("V-021", AssetType.VALVE, "RAJATGIRI", "Z-11"),
-    ("V-022", AssetType.VALVE, "RAJATGIRI", "Z-11"),
-
-    ("V-023", AssetType.VALVE, "RAJATGIRI", "Z-12"),
-    ("V-024", AssetType.VALVE, "RAJATGIRI", "Z-12"),
-
-    # Rajatpur
-    ("V-025", AssetType.VALVE, "RAJATPUR", "Z-13"),
-    ("V-026", AssetType.VALVE, "RAJATPUR", "Z-13"),
-
-    ("V-027", AssetType.VALVE, "RAJATPUR", "Z-14"),
-    ("V-028", AssetType.VALVE, "RAJATPUR", "Z-14"),
-
-    ("V-029", AssetType.VALVE, "RAJATPUR", "Z-15"),
-    ("V-030", AssetType.VALVE, "RAJATPUR", "Z-15"),
-
-    ("V-031", AssetType.VALVE, "RAJATPUR", "Z-16"),
-    ("V-032", AssetType.VALVE, "RAJATPUR", "Z-16"),
-]
-
-
-def create_assets() -> Dict[str, Asset]:
-    """Create all frozen assets."""
-
-    assets = {}
-
-    for asset_id, asset_type, city_id, zone_id in ASSET_CONFIG:
-        asset = Asset(
-            asset_id=asset_id,
-            asset_type=asset_type.value,
-            city_id=city_id,
-            zone_id=zone_id
-        )
-
-        assets[asset_id] = asset
+            assets.append(asset)
 
     return assets
-
-
-# Global asset registry
-
-ASSETS = create_assets()
-
-
-def get_assets_by_zone(zone_id: str) -> List[Asset]:
-    """Return all assets belonging to a zone."""
-
-    return [
-        asset
-        for asset in ASSETS.values()
-        if asset.zone_id == zone_id
-    ]
-
-
-def get_assets_by_type(asset_type: str) -> List[Asset]:
-    """Return all assets of a given type."""
-
-    return [
-        asset
-        for asset in ASSETS.values()
-        if asset.asset_type == asset_type
-    ]
-
-
-def get_assets_by_city(city_id: str) -> List[Asset]:
-    """Return all assets belonging to a city."""
-
-    return [
-        asset
-        for asset in ASSETS.values()
-        if asset.city_id == city_id
-    ]
-
-
-def verify_asset_counts() -> Dict[str, int]:
-    """Verify the frozen asset counts."""
-
-    counts = {}
-
-    for asset in ASSETS.values():
-        counts[asset.asset_type] = (
-            counts.get(asset.asset_type, 0) + 1
-        )
-
-    expected = {
-        AssetType.TREATMENT_FACILITY.value: 8,
-        AssetType.RESERVOIR.value: 8,
-        AssetType.PUMP_STATION.value: 12,
-        AssetType.PIPELINE.value: 48,
-        AssetType.VALVE.value: 32
-    }
-
-    assert counts == expected, (
-        f"Asset count mismatch: {counts} != {expected}"
-    )
-
-    assert len(ASSETS) == 108, (
-        f"Total asset count mismatch: {len(ASSETS)} != 108"
-    )
-
-    return counts

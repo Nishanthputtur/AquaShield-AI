@@ -1,78 +1,59 @@
 """
-Zone definitions for the water distribution simulation.
-Contains the 16 zones with exact frozen names.
+Defines the Zone dataclass for the AquaShield AI virtual water city.
 """
 
-from typing import Dict, List
+from dataclasses import dataclass, field
+from typing import List
 
 
+@dataclass
 class Zone:
-    """Represents a zone within a city."""
+    """
+    Represents a zone within a virtual water city.
 
-    def __init__(self, zone_id: str, name: str, city_id: str):
-        self.zone_id = zone_id
-        self.name = name
-        self.city_id = city_id
-        self.assets = {}
-        self.sensors = {}
+    A zone belongs to one city and maintains the IDs
+    of the assets located within that zone.
+    """
 
-    def __repr__(self) -> str:
-        return f"Zone({self.zone_id}, {self.name}, city={self.city_id})"
+    id: str
+    name: str
+    city_id: str
+    asset_ids: List[str] = field(default_factory=list)
 
+    def __post_init__(self) -> None:
+        """Validate the basic identity information of the zone."""
 
-# Frozen zone configuration
-# Exact names from the finalized specification
+        if not self.id.strip():
+            raise ValueError("Zone ID cannot be empty.")
 
-ZONE_CONFIG = {
-    # Zorawarpur
-    "Z-01": {"name": "North Heights", "city": "ZORAWARPUR"},
-    "Z-02": {"name": "Central Zora", "city": "ZORAWARPUR"},
-    "Z-03": {"name": "Zora Industrial Belt", "city": "ZORAWARPUR"},
-    "Z-04": {"name": "New Zora", "city": "ZORAWARPUR"},
+        if not self.name.strip():
+            raise ValueError("Zone name cannot be empty.")
 
-    # Amaranagar
-    "Z-05": {"name": "Amara Central", "city": "AMARANAGAR"},
-    "Z-06": {"name": "Corporate Park", "city": "AMARANAGAR"},
-    "Z-07": {"name": "Executive Enclave", "city": "AMARANAGAR"},
-    "Z-08": {"name": "Eastern Expansion", "city": "AMARANAGAR"},
+        if not self.city_id.strip():
+            raise ValueError("City ID cannot be empty.")
 
-    # Rajatgiri
-    "Z-09": {"name": "Rajat Heights", "city": "RAJATGIRI"},
-    "Z-10": {"name": "Financial District", "city": "RAJATGIRI"},
-    "Z-11": {"name": "Valley Quarter", "city": "RAJATGIRI"},
-    "Z-12": {"name": "Mountain Edge", "city": "RAJATGIRI"},
+        if len(set(self.asset_ids)) != len(self.asset_ids):
+            raise ValueError("Asset IDs within a zone must be unique.")
 
-    # Rajatpur
-    "Z-13": {"name": "Rajat Central", "city": "RAJATPUR"},
-    "Z-14": {"name": "Coastal Front", "city": "RAJATPUR"},
-    "Z-15": {"name": "Port District", "city": "RAJATPUR"},
-    "Z-16": {"name": "South Marina", "city": "RAJATPUR"}
-}
+    def add_asset_id(self, asset_id: str) -> None:
+        """
+        Add an asset ID to this zone.
 
+        Duplicate asset IDs are ignored.
+        """
 
-def create_zones() -> Dict[str, Zone]:
-    zones = {}
+        if not asset_id.strip():
+            raise ValueError("Asset ID cannot be empty.")
 
-    for zone_id, config in ZONE_CONFIG.items():
-        zone = Zone(
-            zone_id=zone_id,
-            name=config["name"],
-            city_id=config["city"]
-        )
+        if asset_id not in self.asset_ids:
+            self.asset_ids.append(asset_id)
 
-        zones[zone_id] = zone
+    def remove_asset_id(self, asset_id: str) -> None:
+        """
+        Remove an asset ID from this zone.
 
-    return zones
+        Does nothing if the asset ID is not present.
+        """
 
-
-# Global zone registry
-
-ZONES = create_zones()
-
-
-def get_zones_by_city(city_id: str) -> List[Zone]:
-    return [
-        zone
-        for zone in ZONES.values()
-        if zone.city_id == city_id
-    ]
+        if asset_id in self.asset_ids:
+            self.asset_ids.remove(asset_id)
