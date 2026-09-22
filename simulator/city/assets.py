@@ -3,9 +3,9 @@ Defines water infrastructure asset types and the Asset dataclass
 for the AquaShield AI virtual water city.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
-from typing import List
+from typing import Dict, List
 
 
 class AssetType(Enum):
@@ -24,6 +24,7 @@ class Asset:
     Represents a single water infrastructure asset.
 
     Each asset belongs to one city and one zone.
+    Sensors are attached directly to the asset's `sensors` list.
     """
 
     id: str
@@ -31,6 +32,7 @@ class Asset:
     asset_type: AssetType
     city_id: str
     zone_id: str
+    sensors: List = field(default_factory=list)
 
     def __post_init__(self) -> None:
         """Validate the basic identity information of the asset."""
@@ -46,6 +48,18 @@ class Asset:
 
         if not self.zone_id.strip():
             raise ValueError("Zone ID cannot be empty.")
+
+
+# ----------------------------------------------------------------------
+# Global asset registry
+#
+# Maps asset_id -> Asset.
+#
+# This dictionary is populated by create_virtual_city() so that the
+# same Asset objects are shared with VirtualCity.assets.
+# Sensor modules import ASSETS from this module.
+# ----------------------------------------------------------------------
+ASSETS: Dict[str, Asset] = {}
 
 
 def create_assets_for_city(

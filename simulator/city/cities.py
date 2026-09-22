@@ -9,10 +9,10 @@ from typing import List
 
 # Frozen fictional city names for the AquaShield AI model.
 CITY_NAMES = [
-    "Aqualis",
-    "Hydropolis",
-    "Aquaville",
-    "Waterhaven",
+    "Zorawarpur",
+    "Amaranagar",
+    "Rajatgiri",
+    "Rajatpur",
 ]
 
 
@@ -59,10 +59,10 @@ def create_cities() -> List[City]:
     Create the four deterministic fictional cities.
 
     City IDs:
-        C1 -> Aqualis
-        C2 -> Hydropolis
-        C3 -> Aquaville
-        C4 -> Waterhaven
+        C1 -> Zorawarpur
+        C2 -> Amaranagar
+        C3 -> Rajatgiri
+        C4 -> Rajatpur
 
     Zone IDs are assigned later when the zones are created.
     """

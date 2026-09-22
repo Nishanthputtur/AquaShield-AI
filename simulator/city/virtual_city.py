@@ -6,7 +6,7 @@ for the AquaShield AI project.
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
-from .assets import Asset, create_assets_for_city
+from .assets import ASSETS, Asset, create_assets_for_city
 from .zones import Zone
 from .cities import City, create_cities
 
@@ -199,6 +199,21 @@ def create_virtual_city() -> VirtualCity:
             zone.add_asset_id(asset.id)
 
     # ---------------------------------------------------------
+    # 3b. Populate the global ASSETS registry
+    #
+    # The same Asset objects are referenced by both
+    # VirtualCity.assets and ASSETS. No copies are made.
+    #
+    # ASSETS.clear() removes any entries left over from a
+    # previous call, so repeated calls never produce stale IDs.
+    # ---------------------------------------------------------
+
+    ASSETS.clear()
+
+    for asset in assets:
+        ASSETS[asset.id] = asset
+
+    # ---------------------------------------------------------
     # 4. Create the complete VirtualCity object
     # ---------------------------------------------------------
 
@@ -337,5 +352,18 @@ if __name__ == "__main__":
 
     assert len(city_ids) == len(set(city_ids)), \
         "Duplicate city IDs found."
+
+    # ---------------------------------------------------------
+    # Validate ASSETS registry
+    # ---------------------------------------------------------
+
+    assert len(ASSETS) == 108, \
+        "ASSETS must contain 108 entries."
+
+    for asset in virtual_city.assets:
+        assert ASSETS[asset.id] is asset, (
+            f"ASSETS[{asset.id}] must reference the same "
+            f"Asset object as VirtualCity.assets."
+        )
 
     print("\nAll validations passed.")
