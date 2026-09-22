@@ -56,20 +56,37 @@ FLOW_RANGES = {
 
 
 def create_flow_sensors() -> list:
-    """Create flow sensors for eligible assets and attach to asset.sensors."""
+    """
+    Create flow sensors for eligible assets and attach to asset.sensors.
+
+    Idempotent: if a flow sensor with the expected sensor_id already
+    exists on the asset, it is not created or appended again.
+    """
     sensors = []
+
     for asset_id, asset in ASSETS.items():
-        try:
-            asset_type_enum = AssetType(asset.asset_type)
-        except ValueError:
-            continue
+
+        # Asset.asset_type is already an AssetType enum.
+        asset_type_enum = asset.asset_type
+
         if asset_type_enum not in FLOW_RANGES:
             continue
+
         min_lpm, max_lpm = FLOW_RANGES[asset_type_enum]
         sensor_id = f"{asset_id}-FLOW"
+
+        # Skip if this flow sensor already exists on the asset.
+        already_exists = any(
+            getattr(existing, "sensor_id", None) == sensor_id
+            for existing in asset.sensors
+        )
+        if already_exists:
+            continue
+
         sensor = FlowSensor(sensor_id, asset_id, min_lpm, max_lpm)
         asset.sensors.append(sensor)
         sensors.append(sensor)
+
     return sensors
 
 

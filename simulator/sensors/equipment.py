@@ -181,60 +181,88 @@ EQUIPMENT_RANGES = {
 }
 
 
+# ----------------------------------------------------------------------
+# Explicit mapping from sensor class to its frozen parameter string.
+#
+# This is used by get_equipment_reading() so that lookups by parameter
+# name match the actual "parameter" field returned by each sensor's read().
+# ----------------------------------------------------------------------
+EQUIPMENT_PARAMETER_BY_CLASS = {
+    TemperatureSensor: "Temperature",
+    VibrationSensor: "Vibration",
+    PowerSensor: "Power Consumption",
+    EquipmentStatusSensor: "Equipment Status",
+    PositionSensor: "Valve Position",
+}
+
+# All equipment sensor classes (used by isinstance checks).
+EQUIPMENT_SENSOR_CLASSES = tuple(EQUIPMENT_PARAMETER_BY_CLASS.keys())
+
+
+def _sensor_exists(asset, sensor_id: str) -> bool:
+    """Return True if the asset already has a sensor with this sensor_id."""
+    return any(
+        getattr(existing, "sensor_id", None) == sensor_id
+        for existing in asset.sensors
+    )
+
+
 def create_equipment_sensors() -> list:
     """
     Create equipment sensors for Pump Stations and Valves.
     Attach each sensor to its asset's `sensors` list.
-    Return list of all created sensors.
+    Return list of all newly created sensors.
+
+    Idempotent: each sensor kind is checked independently against the
+    asset's existing sensors before being created.
     """
     sensors = []
 
     for asset_id, asset in ASSETS.items():
-        try:
-            asset_type_enum = AssetType(asset.asset_type)
-        except ValueError:
-            continue
+
+        # Asset.asset_type is already an AssetType enum.
+        asset_type_enum = asset.asset_type
 
         if asset_type_enum == AssetType.PUMP_STATION:
             # Temperature
-            min_t, max_t = EQUIPMENT_RANGES[AssetType.PUMP_STATION]["temperature"]
-            temp_sensor = TemperatureSensor(
-                f"{asset_id}-TEMPERATURE", asset_id, min_t, max_t
-            )
-            asset.sensors.append(temp_sensor)
-            sensors.append(temp_sensor)
+            sensor_id = f"{asset_id}-TEMPERATURE"
+            if not _sensor_exists(asset, sensor_id):
+                min_t, max_t = EQUIPMENT_RANGES[AssetType.PUMP_STATION]["temperature"]
+                temp_sensor = TemperatureSensor(sensor_id, asset_id, min_t, max_t)
+                asset.sensors.append(temp_sensor)
+                sensors.append(temp_sensor)
 
             # Vibration
-            min_v, max_v = EQUIPMENT_RANGES[AssetType.PUMP_STATION]["vibration"]
-            vib_sensor = VibrationSensor(
-                f"{asset_id}-VIBRATION", asset_id, min_v, max_v
-            )
-            asset.sensors.append(vib_sensor)
-            sensors.append(vib_sensor)
+            sensor_id = f"{asset_id}-VIBRATION"
+            if not _sensor_exists(asset, sensor_id):
+                min_v, max_v = EQUIPMENT_RANGES[AssetType.PUMP_STATION]["vibration"]
+                vib_sensor = VibrationSensor(sensor_id, asset_id, min_v, max_v)
+                asset.sensors.append(vib_sensor)
+                sensors.append(vib_sensor)
 
             # Power
-            min_p, max_p = EQUIPMENT_RANGES[AssetType.PUMP_STATION]["power"]
-            power_sensor = PowerSensor(
-                f"{asset_id}-POWER", asset_id, min_p, max_p
-            )
-            asset.sensors.append(power_sensor)
-            sensors.append(power_sensor)
+            sensor_id = f"{asset_id}-POWER"
+            if not _sensor_exists(asset, sensor_id):
+                min_p, max_p = EQUIPMENT_RANGES[AssetType.PUMP_STATION]["power"]
+                power_sensor = PowerSensor(sensor_id, asset_id, min_p, max_p)
+                asset.sensors.append(power_sensor)
+                sensors.append(power_sensor)
 
             # Equipment Status
-            status_sensor = EquipmentStatusSensor(
-                f"{asset_id}-EQUIPMENT-STATUS", asset_id
-            )
-            asset.sensors.append(status_sensor)
-            sensors.append(status_sensor)
+            sensor_id = f"{asset_id}-EQUIPMENT-STATUS"
+            if not _sensor_exists(asset, sensor_id):
+                status_sensor = EquipmentStatusSensor(sensor_id, asset_id)
+                asset.sensors.append(status_sensor)
+                sensors.append(status_sensor)
 
         elif asset_type_enum == AssetType.VALVE:
             # Valve Position
-            min_pos, max_pos = EQUIPMENT_RANGES[AssetType.VALVE]["position"]
-            pos_sensor = PositionSensor(
-                f"{asset_id}-POSITION", asset_id, min_pos, max_pos
-            )
-            asset.sensors.append(pos_sensor)
-            sensors.append(pos_sensor)
+            sensor_id = f"{asset_id}-POSITION"
+            if not _sensor_exists(asset, sensor_id):
+                min_pos, max_pos = EQUIPMENT_RANGES[AssetType.VALVE]["position"]
+                pos_sensor = PositionSensor(sensor_id, asset_id, min_pos, max_pos)
+                asset.sensors.append(pos_sensor)
+                sensors.append(pos_sensor)
 
     return sensors
 
@@ -244,9 +272,7 @@ def generate_equipment_readings() -> list:
     readings = []
     for asset in ASSETS.values():
         for sensor in asset.sensors:
-            if isinstance(sensor, (TemperatureSensor, VibrationSensor,
-                                   PowerSensor, EquipmentStatusSensor,
-                                   PositionSensor)):
+            if isinstance(sensor, EQUIPMENT_SENSOR_CLASSES):
                 readings.append(sensor.read())
     return readings
 
@@ -254,7 +280,10 @@ def generate_equipment_readings() -> list:
 def get_equipment_reading(asset_id: str, parameter: str = None) -> dict or list: # type: ignore
     """
     Get a fresh reading for a specific asset.
-    If parameter is given (e.g., 'Temperature', 'Vibration', ...), return that reading.
+
+    If parameter is given (exact frozen parameter name such as
+    'Temperature', 'Vibration', 'Power Consumption',
+    'Equipment Status', 'Valve Position'), return that reading.
     Otherwise return a list of all equipment readings for that asset.
     """
     asset = ASSETS.get(asset_id)
@@ -263,11 +292,13 @@ def get_equipment_reading(asset_id: str, parameter: str = None) -> dict or list:
 
     results = []
     for sensor in asset.sensors:
-        if isinstance(sensor, (TemperatureSensor, VibrationSensor,
-                               PowerSensor, EquipmentStatusSensor,
-                               PositionSensor)):
-            if parameter is None or sensor.__class__.__name__.replace("Sensor", "") == parameter:
-                results.append(sensor.read())
+        if not isinstance(sensor, EQUIPMENT_SENSOR_CLASSES):
+            continue
+
+        param_name = EQUIPMENT_PARAMETER_BY_CLASS.get(type(sensor))
+
+        if parameter is None or param_name == parameter:
+            results.append(sensor.read())
 
     if parameter:
         return results[0] if results else None
@@ -281,7 +312,5 @@ def get_asset_equipment_sensors(asset_id: str) -> list:
         return []
     return [
         s for s in asset.sensors
-        if isinstance(s, (TemperatureSensor, VibrationSensor,
-                          PowerSensor, EquipmentStatusSensor,
-                          PositionSensor))
+        if isinstance(s, EQUIPMENT_SENSOR_CLASSES)
     ]

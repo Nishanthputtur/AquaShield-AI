@@ -46,20 +46,37 @@ PRESSURE_RANGES = {
 
 
 def create_pressure_sensors() -> list:
+    """
+    Create pressure sensors for eligible assets and attach to asset.sensors.
+
+    Idempotent: if a pressure sensor with the expected sensor_id already
+    exists on the asset, it is not created or appended again.
+    """
     sensors = []
+
     for asset_id, asset in ASSETS.items():
-        try:
-            # Convert string to enum member
-            asset_type_enum = AssetType(asset.asset_type)
-        except ValueError:
-            continue  # should not happen with valid assets
+
+        # Asset.asset_type is already an AssetType enum.
+        asset_type_enum = asset.asset_type
+
         if asset_type_enum not in PRESSURE_RANGES:
             continue
+
         min_psi, max_psi = PRESSURE_RANGES[asset_type_enum]
         sensor_id = f"{asset_id}-PRESSURE"
+
+        # Skip if this pressure sensor already exists on the asset.
+        already_exists = any(
+            getattr(existing, "sensor_id", None) == sensor_id
+            for existing in asset.sensors
+        )
+        if already_exists:
+            continue
+
         sensor = PressureSensor(sensor_id, asset_id, min_psi, max_psi)
         asset.sensors.append(sensor)
         sensors.append(sensor)
+
     return sensors
 
 
