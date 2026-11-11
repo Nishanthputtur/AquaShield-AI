@@ -1,0 +1,5 @@
+﻿# The canonical runtime dependency list is at the repository root:
+#     requirements.txt
+#
+# This file exists only because the folder scaffold created it. Do not
+# add packages here. Add them to the root requirements.txt instead.

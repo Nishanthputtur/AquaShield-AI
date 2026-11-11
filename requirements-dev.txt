@@ -1,1 +1,6 @@
-﻿pytest
+﻿# AquaShield AI — development dependencies
+# Installs runtime dependencies first, then dev tools on top.
+-r requirements.txt
+
+# Testing
+pytest
