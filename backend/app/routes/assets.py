@@ -15,6 +15,7 @@ from backend.app.models.asset import Asset
 from backend.app.models.city import City
 from backend.app.models.zone import Zone
 from backend.app.schemas.asset import AssetResponse
+from backend.app.services.asset_service import _display_name
 
 router = APIRouter(
     prefix="/api/v1/assets",
@@ -52,7 +53,7 @@ def get_asset_by_id(id: str, db: Session = Depends(get_db)):
     asset, zone, city = row
     return AssetResponse(
         asset_id=str(asset.asset_name),
-        name=str(asset.asset_name),
+        name=_display_name(asset),
         type=str(asset.asset_type),
         status=str(asset.status),
         city_name=str(city.city_name),

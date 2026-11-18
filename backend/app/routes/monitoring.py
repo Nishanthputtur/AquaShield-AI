@@ -15,6 +15,7 @@ from backend.app.schemas.asset import (
     MonitoringReadingsResponse,
     ReadingItem,
 )
+from backend.app.services.asset_service import _display_name
 from backend.app.services.simulation_service import simulation_service
 
 router = APIRouter(
@@ -50,7 +51,7 @@ def get_monitoring_readings(
         if asset_info:
             asset_resp = AssetResponse(
                 asset_id=str(r.get("asset_id", asset_info.get("name"))),
-                name=str(asset_info.get("name")),
+                name=_display_name(asset_info),
                 type=str(asset_info.get("type")),
                 status=str(asset_info.get("status")),
                 city_name=str(asset_info.get("city_name")),

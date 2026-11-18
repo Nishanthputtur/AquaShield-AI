@@ -253,6 +253,27 @@ def test_monitoring_readings_unauthenticated(client):
     assert resp.status_code == 401
 
 
+def test_monitoring_readings_limit_query_params(client, engineer_headers):
+    """Test limit query parameter behavior for monitoring readings."""
+    # Default limit returns up to 100
+    resp = client.get("/api/v1/monitoring/readings", headers=engineer_headers)
+    assert resp.status_code == 200
+    assert len(resp.json()["readings"]) <= 100
+
+    # Explicit limit within bounds
+    resp = client.get("/api/v1/monitoring/readings?limit=328", headers=engineer_headers)
+    assert resp.status_code == 200
+    assert len(resp.json()["readings"]) <= 328
+
+    # Limit exceeds maximum (1000) -> 422
+    resp = client.get("/api/v1/monitoring/readings?limit=5000", headers=engineer_headers)
+    assert resp.status_code == 422
+
+    # Limit below minimum (1) -> 422
+    resp = client.get("/api/v1/monitoring/readings?limit=0", headers=engineer_headers)
+    assert resp.status_code == 422
+
+
 def test_monitoring_readings_wrong_role(
     client, admin_headers, inspector_headers, maintenance_headers, manager_headers
 ):
@@ -261,3 +282,4 @@ def test_monitoring_readings_wrong_role(
     assert client.get("/api/v1/monitoring/readings", headers=inspector_headers).status_code == 403
     assert client.get("/api/v1/monitoring/readings", headers=maintenance_headers).status_code == 403
     assert client.get("/api/v1/monitoring/readings", headers=manager_headers).status_code == 403
+
