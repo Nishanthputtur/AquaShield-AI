@@ -5,7 +5,7 @@ Matching CONTRACT.md Section 4.8.
 Authorized role: Engineer only.
 """
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from backend.app.database.database import get_db
@@ -25,7 +25,10 @@ router = APIRouter(
 
 
 @router.get("/readings", response_model=MonitoringReadingsResponse)
-def get_monitoring_readings(db: Session = Depends(get_db)):
+def get_monitoring_readings(
+    limit: int = Query(100, ge=1, le=1000),
+    db: Session = Depends(get_db),
+):
     """Retrieve virtual sensor readings with inline asset context.
 
     Authorized for Engineer role only. Returns exact CONTRACT.md Section 4.8 fields.
@@ -38,7 +41,7 @@ def get_monitoring_readings(db: Session = Depends(get_db)):
         create_virtual_city()
     initialize_sensors()
 
-    raw_readings = simulation_service.get_engineer_readings(db=db)
+    raw_readings = simulation_service.get_engineer_readings(db=db, limit=limit)
 
     formatted_readings = []
     for r in raw_readings:
