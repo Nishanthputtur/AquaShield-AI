@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "AquaShield AI"
     APP_VERSION: str = "0.1.0"
     DEBUG: bool = False
+    APP_ENV: str = "production"
 
     # ---- Database ----------------------------------------------------
     # Local development default. Override via backend/.env in any
@@ -56,6 +57,11 @@ class Settings(BaseSettings):
     # Comma-separated origins for the two React frontends.
     # Defaults cover Vite (5173) and CRA (3000) local dev.
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
+
+    # ---- Authentication / JWT ----------------------------------------
+    JWT_SECRET_KEY: str
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRE_MINUTES: int = 30
 
     # ---- Pydantic configuration --------------------------------------
     model_config = SettingsConfigDict(
