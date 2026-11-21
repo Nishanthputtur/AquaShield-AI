@@ -115,6 +115,9 @@ export const api = {
 
   getMaintenance: (token) =>
     request('GET', '/api/v1/maintenance', null, token),
+
+  getAnalyticsDashboard: (token) =>
+    request('GET', '/api/v1/analytics/dashboard', null, token),
 };
 
 export default api;

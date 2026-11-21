@@ -4,9 +4,10 @@ FastAPI application entrypoint for AquaShield AI.
 
 from contextlib import asynccontextmanager
 import logging
-
+from backend.app.routes import analytics
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from backend.app.routes import public
 
 from backend.app.config.settings import settings
 from backend.app.routes.assets import router as assets_router
@@ -54,7 +55,8 @@ app.include_router(monitoring_router)
 app.include_router(assets_router)
 app.include_router(inspections_router)
 app.include_router(maintenance_router)
-
+app.include_router(analytics.router)
+app.include_router(public.router)
 
 @app.get("/health")
 def health():
