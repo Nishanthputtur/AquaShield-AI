@@ -1,29 +1,13 @@
 import React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { useAuth } from './contexts/AuthContext';
+import { useAuth } from './contexts/AuthContextStore';
 import Admin from './pages/Admin';
 import Engineer from './pages/Engineer';
 import Inspector from './pages/Inspector';
 import Login from './pages/Login';
 import Maintenance from './pages/Maintenance';
 import Manager from './pages/Manager';
-
-export function roleHome(role) {
-  switch (role) {
-    case 'Administrator':
-      return '/admin';
-    case 'Engineer':
-      return '/engineer';
-    case 'Maintenance Officer':
-      return '/maintenance';
-    case 'Field Inspector':
-      return '/inspector';
-    case 'Utility Manager':
-      return '/manager';
-    default:
-      return '/login';
-  }
-}
+import { roleHome } from './utils/roleHome';
 
 function ProtectedRoute({ role, children }) {
   const { user, loading } = useAuth();

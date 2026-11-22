@@ -8,3 +8,7 @@ psycopg[binary]
 
 # Simulator
 # (none beyond the Python standard library at this time)
+
+PyJWT
+argon2-cffi
+email-validator

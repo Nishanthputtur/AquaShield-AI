@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { roleHome } from '../App';
-import { useAuth } from '../contexts/AuthContext';
+import { roleHome } from '../utils/roleHome';
+import { useAuth } from '../contexts/AuthContextStore';
 
 const DEMO_USERS = [
   { label: 'Admin', email: 'admin@aquashield.demo', role: 'Administrator' },

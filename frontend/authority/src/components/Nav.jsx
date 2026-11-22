@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { roleHome } from '../App';
-import { useAuth } from '../contexts/AuthContext';
+import { roleHome } from '../utils/roleHome';
+import { useAuth }from '../contexts/AuthContextStore';
 
 export default function Nav() {
   const { user, logout } = useAuth();

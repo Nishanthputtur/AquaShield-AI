@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Nav from '../components/Nav';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContextStore';
 import api from '../services/api';
 
 const EXAMPLE_ASSETS = ['C1-TF-001', 'C1-P-001', 'C1-V-001'];

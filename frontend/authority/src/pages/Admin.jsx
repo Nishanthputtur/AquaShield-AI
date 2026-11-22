@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Nav from '../components/Nav';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContextStore';
 import api from '../services/api';
 
 const ROLES = [
@@ -27,23 +27,46 @@ export default function Admin() {
   const [usersLoading, setUsersLoading] = useState(true);
   const [usersError, setUsersError] = useState('');
 
-  const fetchUsers = useCallback(async () => {
-    setUsersLoading(true);
+ const fetchUsers = useCallback(async () => {
+  try {
+    const data = await api.getUsers(token);
     setUsersError('');
-    try {
-      const data = await api.getUsers(token);
-      setUsers(data.users || data || []);
-    } catch (err) {
-      setUsersError(err.message || 'Failed to load users');
-    } finally {
-      setUsersLoading(false);
-    }
-  }, [token]);
+    setUsers(data.users || data || []);
+  } catch (err) {
+    setUsersError(err.message || 'Failed to load users');
+  } finally {
+    setUsersLoading(false);
+  }
+}, [token]);
 
   useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+  let isMounted = true;
 
+  async function loadUsers() {
+    try {
+      const data = await api.getUsers(token);
+
+      if (isMounted) {
+        setUsers(data.users || data || []);
+        setUsersError('');
+      }
+    } catch (err) {
+      if (isMounted) {
+        setUsersError(err.message || 'Failed to load users');
+      }
+    } finally {
+      if (isMounted) {
+        setUsersLoading(false);
+      }
+    }
+  }
+
+  loadUsers();
+
+  return () => {
+    isMounted = false;
+  };
+}, [token]);
   // ── Create-user form ──────────────────────────────────────────────────────
   const [formName, setFormName] = useState('');
   const [formEmail, setFormEmail] = useState('');
@@ -78,6 +101,8 @@ export default function Admin() {
       setFormEmail('');
       setFormPassword('');
       setFormRole('Engineer');
+      setUsersLoading(true);
+      setUsersError('');
       fetchUsers();
     } catch (err) {
       const detail = err.detail;

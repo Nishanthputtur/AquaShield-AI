@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Nav from '../components/Nav';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContextStore';
 import api from '../services/api';
 
 export default function Maintenance() {
@@ -12,43 +12,90 @@ export default function Maintenance() {
   const [inspectionsError, setInspectionsError] = useState('');
 
   const fetchInspections = useCallback(async () => {
-    setInspectionsLoading(true);
+  try {
+    const data = await api.getInspections(token);
     setInspectionsError('');
-    try {
-      const data = await api.getInspections(token);
-      setInspections(data.inspections || []);
-    } catch (err) {
-      setInspectionsError(err.message || 'Failed to load inspections');
-    } finally {
-      setInspectionsLoading(false);
-    }
-  }, [token]);
+    setInspections(data.inspections || []);
+  } catch (err) {
+    setInspectionsError(err.message || 'Failed to load inspections');
+  } finally {
+    setInspectionsLoading(false);
+  }
+}, [token]);
 
   useEffect(() => {
-    fetchInspections();
-  }, [fetchInspections]);
+  let isMounted = true;
 
+  async function loadInspections() {
+    try {
+      const data = await api.getInspections(token);
+
+      if (isMounted) {
+        setInspections(data.inspections || []);
+        setInspectionsError('');
+      }
+    } catch (err) {
+      if (isMounted) {
+        setInspectionsError(err.message || 'Failed to load inspections');
+      }
+    } finally {
+      if (isMounted) {
+        setInspectionsLoading(false);
+      }
+    }
+  }
+
+  loadInspections();
+
+  return () => {
+    isMounted = false;
+  };
+}, [token]);
   // ── Maintenance records (bottom table) ───────────────────────────────────
   const [records, setRecords] = useState([]);
   const [recordsLoading, setRecordsLoading] = useState(true);
   const [recordsError, setRecordsError] = useState('');
 
   const fetchRecords = useCallback(async () => {
-    setRecordsLoading(true);
+  try {
+    const data = await api.getMaintenance(token);
     setRecordsError('');
-    try {
-      const data = await api.getMaintenance(token);
-      setRecords(data.maintenance_records || []);
-    } catch (err) {
-      setRecordsError(err.message || 'Failed to load maintenance records');
-    } finally {
-      setRecordsLoading(false);
-    }
-  }, [token]);
+    setRecords(data.maintenance_records || []);
+  } catch (err) {
+    setRecordsError(err.message || 'Failed to load maintenance records');
+  } finally {
+    setRecordsLoading(false);
+  }
+}, [token]);
 
   useEffect(() => {
-    fetchRecords();
-  }, [fetchRecords]);
+  let isMounted = true;
+
+  async function loadRecords() {
+    try {
+      const data = await api.getMaintenance(token);
+
+      if (isMounted) {
+        setRecords(data.maintenance_records || []);
+        setRecordsError('');
+      }
+    } catch (err) {
+      if (isMounted) {
+        setRecordsError(err.message || 'Failed to load maintenance records');
+      }
+    } finally {
+      if (isMounted) {
+        setRecordsLoading(false);
+      }
+    }
+  }
+
+  loadRecords();
+
+  return () => {
+    isMounted = false;
+  };
+}, [token]);;
 
   // ── Create-maintenance form (right panel) ─────────────────────────────────
   const [formAssetId, setFormAssetId] = useState('');
@@ -77,6 +124,8 @@ export default function Maintenance() {
       setFormDetails('');
       setFormStatus('Scheduled');
       setFormNotes('');
+      setRecordsLoading(true);
+      setRecordsError('');
       fetchRecords();
     } catch (err) {
       const detail = err.detail;
@@ -115,7 +164,11 @@ export default function Maintenance() {
                 Field Inspections
               </h2>
               <button
-                onClick={fetchInspections}
+                onClick={() => {
+  setInspectionsLoading(true);
+  setInspectionsError('');
+  fetchInspections();
+}}
                 className="text-xs font-medium text-cyan-600 hover:underline"
               >
                 Refresh

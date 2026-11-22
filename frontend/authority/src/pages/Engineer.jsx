@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Chart from '../components/Chart';
 import Nav from '../components/Nav';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContextStore';
 import api from '../services/api';
 
 const PARAMETERS = [
@@ -24,18 +24,6 @@ export default function Engineer() {
 
   const pollIntervalRef = useRef(null);
 
-  // Fetch current simulation state
-  const fetchState = useCallback(async () => {
-    try {
-      const data = await api.getSimulationState(token);
-      setSimState(data);
-      return data;
-    } catch (err) {
-      setBannerError(err.message || 'Failed to fetch simulation state');
-      return null;
-    }
-  }, [token]);
-
   // Fetch latest monitoring readings
   const fetchReadings = useCallback(async () => {
     try {
@@ -48,12 +36,43 @@ export default function Engineer() {
       setBannerError(err.message || 'Failed to fetch readings');
     }
   }, [token]);
+// Initial load
+useEffect(() => {
+  let isMounted = true;
 
-  // Initial load
-  useEffect(() => {
-    fetchState();
-    fetchReadings();
-  }, [fetchState, fetchReadings]);
+  async function loadInitialState() {
+    try {
+      const data = await api.getSimulationState(token);
+      if (isMounted) {
+        setSimState(data);
+      }
+    } catch (err) {
+      if (isMounted) {
+        setBannerError(err.message || 'Failed to fetch simulation state');
+      }
+    }
+  }
+
+  async function loadInitialReadings() {
+    try {
+      const data = await api.getReadings(token, 328);
+      if (isMounted && data && data.readings) {
+        setReadings(data.readings);
+      }
+    } catch (err) {
+      if (isMounted) {
+        setBannerError(err.message || 'Failed to fetch readings');
+      }
+    }
+  }
+
+  loadInitialState();
+  loadInitialReadings();
+
+  return () => {
+    isMounted = false;
+  };
+}, [token]);
 
   // Auto-polling when state is RUNNING
   useEffect(() => {

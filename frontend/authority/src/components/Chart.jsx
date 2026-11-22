@@ -80,7 +80,7 @@ export default function SensorChart({ readings = [], parameter = 'Pressure' }) {
     // Limit visible lines to prevent over-clutter if there are dozens of assets
     const assetEntries = Array.from(assetMap.entries()).slice(0, 10);
 
-    const datasets = assetEntries.map(([assetId, info], index) => {
+    const datasets = assetEntries.map(([, info], index) => {
       const color = COLOR_PALETTE[index % COLOR_PALETTE.length];
       const data = uniqueTimestamps.map(
         (ts) => info.byTimestamp.get(ts) ?? null
